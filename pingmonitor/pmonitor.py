@@ -37,7 +37,7 @@ class PingMonitor:
         reg = r'time=(\d+\.?\d+?)'
 
         rsearch = re.search(reg, output)
-        if rsearch and randint(1, 3) != 3:
+        if rsearch:
             self.history.append(D(str(rsearch.group(1))))
         else:
             self.history.append(None)
