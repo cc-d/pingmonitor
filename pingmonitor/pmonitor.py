@@ -4,7 +4,7 @@ import re
 import subprocess
 import time
 from decimal import Decimal as D
-from typing import Dict
+from typing import Dict, Optional
 
 from rich.console import Console
 from rich.table import Table
@@ -12,27 +12,7 @@ from rich.table import Table
 from utils import cmd
 
 
-def ping(ip: str = '8.8.8.8') -> dict:
-    """Pings the target IP and returns the ICMP sequence number, average latency,
-    and packet loss percentage in a dictionary.
-
-    Args:
-        ip (str): The IP address to ping. Defaults Google DNS #1 (8.8.8.8)
-
-    Returns:
-        dict: A dictionary containing the ping results.
-    """
-    pstr = f'ping -c 1 {ip}'
-    out, err = cmd(pstr)
-    return out.stdout
-
-
 class PingMonitor:
-
-    RE_SEQ = re.compile(r"icmp_seq=(\d+)")
-    RE_AVG_RTT = re.compile(r"avg/?mdev\s*=\s*([\d.]+)")
-    RE_PLOSS = re.compile(r"(\d+)% packet loss")
-
     def __init__(self, interval: int, host: str):
         self.interval = interval
         self.host = host
@@ -45,60 +25,47 @@ class PingMonitor:
         pass
 
 
-    def ping(self) -> Dict[str, D]:
+    def ping(self) -> Optional[D]:
         """Sends a single ping to the host and returns the ICMP sequence number,
         average latency, and packet loss percentage in a dictionary.
 
         Returns:
             Dict[str, D]: A dictionary containing the ping results.
         """
-        ping_cmd = ["ping", "-c", "1", self.host]
-        ping_output = subprocess.run(
-            ping_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
+        output, err = cmd(f'ping -c 1 {self.host}')
+        reg = r'time=(\d+\.?\d+?)'
 
-        icmp_seq_re = re.compile(r"icmp_seq=(\d+)")
-        avg_rtt_re = re.compile(r"avg/?mdev\s*=\s*([\d.]+)")
-        packet_loss_re = re.compile(r"(\d+)% packet loss")
+        rsearch = re.search(reg, output)
+        if rsearch:
+            self.history.append(D(str(rsearch.group(1))))
+        else:
+            self.history.append(None)
+        return self.history[-1]
 
-        icmp_seq = int(icmp_seq_re.search(ping_output.stdout).group(1))
-        avg_rtt = D(avg_rtt_re.search(ping_output.stdout).group(1))
-        packet_loss = D(packet_loss_re.search(ping_output.stdout).group(1))
 
-        result = {
-            "icmp_seq": icmp_seq,
-            "avg_rtt": avg_rtt,
-            "packet_loss": packet_loss,
-        }
+    def pingprint(self):
+        hlen, htotal = D('0'), D('0')
+        for h in self.history:
+            hlen += 1
+            if h is not None:
+                htotal += h
 
-        self.history.append(result)
-        return result
+        avg = D(str(htotal / hlen)).quantize(D('0.001'))
 
-    def display_history(self):
-        """Displays the ping history using a rich table."""
-        console = Console()
-        table = Table(show_header=True, header_style="bold magenta")
-        table.add_column("ICMP Sequence")
-        table.add_column("Avg. Latency (ms)")
-        table.add_column("Packet Loss (%)")
+        ncount = self.history.count(None)
+        if ncount == 0:
+            ploss = D('0')
+        else:
+            ploss = D(hlen / ncount).quantize(D('0.01'))
 
-        for entry in self.history:
-            table.add_row(
-                str(entry["icmp_seq"]),
-                str(entry["avg_rtt"]),
-                str(entry["packet_loss"]),
-            )
-
-        console.clear()
-        console.print(table)
+        print(f'avg: {avg} ms | packet loss: {ploss}% | last pings: {[str(x) for x in self.history[-5:]]}')
 
     def run(self):
         """Continuously pings the host and updates the terminal display."""
-        with self:
-            while True:
-                self.ping()
-                self.display_history()
-                time.sleep(self.interval)
+        while True:
+            self.ping()
+            self.pingprint()
+            time.sleep(self.interval)
 
 
 if __name__ == "__main__":
