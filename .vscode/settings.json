@@ -1,8 +1,7 @@
 {
-    "python.pythonPath": "venv/",
+    "python.pythonPath": "~/.pyenv/versions/3.10.10/bin/python3",
     "python.analysis.extraPaths": [
-        "./venv/lib/python3.10/site-packages",
         "venv/lib/python3.10/site-packages",
-    ],
-    "test": "Test",
+        "~/.pyenv/versions/3.10.10/lib/python3.10/"
+    ]
 }

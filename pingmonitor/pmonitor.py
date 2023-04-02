@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from utils import cmd
+from random import *
 
 
 class PingMonitor:
@@ -36,7 +37,7 @@ class PingMonitor:
         reg = r'time=(\d+\.?\d+?)'
 
         rsearch = re.search(reg, output)
-        if rsearch:
+        if rsearch and randint(1, 3) != 3:
             self.history.append(D(str(rsearch.group(1))))
         else:
             self.history.append(None)
@@ -56,9 +57,11 @@ class PingMonitor:
         if ncount == 0:
             ploss = D('0')
         else:
-            ploss = D(hlen / ncount).quantize(D('0.01'))
+            ploss = D(hlen - ncount).quantize(D('0.01'))
 
-        print(f'avg: {avg} ms | packet loss: {ploss}% | last pings: {[str(x) for x in self.history[-5:]]}')
+        hstr = ' '.join([str(x) for x in self.history[-5:]])
+
+        print(f'avg: {avg} ms | loss: {ploss}% | last: [{hstr}]')
 
     def run(self):
         """Continuously pings the host and updates the terminal display."""
