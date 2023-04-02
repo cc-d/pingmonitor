@@ -10,8 +10,6 @@ from rich.console import Console
 from rich.table import Table
 
 from utils import cmd
-from random import *
-
 
 class PingMonitor:
     def __init__(self, interval: int, host: str):
