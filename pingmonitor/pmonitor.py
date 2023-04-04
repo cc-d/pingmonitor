@@ -33,10 +33,8 @@ class PingMonitor:
         """
         output, err = cmd(f'ping -c 1 {self.host}')
         reg = r'time=(\d+\.?\d+?)'
-        import random
         rsearch = re.search(reg, output)
-        if random.randint(0,2) == 1:
-            rsearch = None
+
         if rsearch:
             self.history.append(D(str(rsearch.group(1))))
         else:
