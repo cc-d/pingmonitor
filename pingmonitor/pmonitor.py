@@ -33,8 +33,10 @@ class PingMonitor:
         """
         output, err = cmd(f'ping -c 1 {self.host}')
         reg = r'time=(\d+\.?\d+?)'
-
+        import random
         rsearch = re.search(reg, output)
+        if random.randint(0,2) == 1:
+            rsearch = None
         if rsearch:
             self.history.append(D(str(rsearch.group(1))))
         else:
@@ -43,19 +45,15 @@ class PingMonitor:
 
 
     def pingprint(self):
-        hlen, htotal = D('0'), D('0')
-        for h in self.history:
-            hlen += 1
-            if h is not None:
-                htotal += h
+        hlen = D(str(len(self.history)))
+        pcount = D(str(len([x for x in self.history if x is not None])))
+        ncount = D(str(self.history.count(None)))
 
-        avg = D(str(htotal / hlen)).quantize(D('0.001'))
+        ploss = D(str(ncount / hlen)).quantize(D('0.01')) * D('100')
 
-        ncount = self.history.count(None)
-        if ncount == 0:
-            ploss = D('0')
-        else:
-            ploss = D(hlen - ncount).quantize(D('0.01'))
+        avg = D(str(pcount / hlen)).quantize(D('0.001'))
+
+
 
         hstr = ' '.join([str(x) for x in self.history[-5:]])
 
